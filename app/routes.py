@@ -30,8 +30,9 @@ def login():
 	if current_user.is_authenticated:
 		return redirect(url_for('index'))
 	form = LoginForm()
+	print(form)
 	if form.validate_on_submit():
-		print('validated')
+		print('validated loginform')
 		user = User.query.filter_by(username=form.username.data).first()
 		if user is None or user.check_password(form.password.data):
 			flash('Invalid username or password')
@@ -52,16 +53,16 @@ def logout():
 def register():
 	if current_user.is_authenticated:
 		return redirect(url_for('index'))
-	form = RegistrationForm()
-	if form.validate_on_submit:
-		print('validated')
-		user = User(username=form.username.data, email=form.email.data)
-	#	user.set_password(form.password.data)
-	#	db.session.add(user)
-	#	db.session.commit()
-	#	flash('Congratulations, you are now a registered user')
+	registForm = RegistrationForm()
+	print(registForm)
+	if registForm.validate_on_submit():
+		user = User(username=registForm.username.data, email=registForm.email.data)
+		user.set_password(registForm.password.data)
+		db.session.add(user)
+		db.session.commit()
+		flash('Congratulations, you are now a registered user')
 		return redirect(url_for('index'))
-	return render_template('register.html', title='Register', form=form)
+	return render_template('register.html', title='Register', registForm=registForm)
 
 
 
