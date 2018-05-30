@@ -1,20 +1,27 @@
 from app import app, db
 from flask import render_template, flash, redirect, url_for
-from app.forms import LoginForm, RegistrationForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, PostForm
 from flask_login import current_user, login_user, logout_user
-from app.models import User
+from app.models import User, Post
 from flask_login import login_required
 from flask import request
 from werkzeug.urls import url_parse
 from datetime import datetime
-from app.forms import EditProfileForm
 
-@app.route('/')
-@app.route('/index')
+@app.route('/', methods=['GET','POST'])
+@app.route('/index', methods=['GET','POST'])
 @login_required
 def index():
+	form  = PostForm()
+	if form.validate_on_submit():
+		post = Post(body=form.post.data, author=current_user)
+		db.session.add(post)
+		db.session.commit()
+		flash('Your post is now live')
+		return redirect(url_for('index'))
+	posts = current_user.followed_posts().all()
 	user  = {'username' : 'senel'}
-	posts = [
+	postsDummy = [
 		{
 			'author' : {'username' : 'John'},
 			'body' : 'Beautiful day in Portland'
@@ -25,7 +32,8 @@ def index():
 
 		}
 	]
-	return render_template('index.html', title = 'home', posts = posts)
+	posts = posts + postsDummy
+	return render_template('index.html', title = 'home', form=form, posts = posts)
 
 @app.route('/login', methods=['GET','POST'])
 def login():
@@ -98,5 +106,34 @@ def edit_profile():
 	return render_template('edit_profile.html', title='Edit Profile',form=form)
 
 
+@app.route('/follow/<username>')
+@login_required
+def follow(username):
+	user = User.query.filter_by(username=username).first()
+	if user is None:
+		flash('User {} not found'.format(username))
+		return redirect(url_for('index'))
+	if user == current_user:
+		flash('You cannot follow yourself')
+		return redirect(url_for('user',username=username))
+	current_user.follow(user)
+	db.session.commit()
+	flash('You are following {}'.format(username))
+	return redirect(url_for('user',username=username))
+
+@app.route('/unfollow/<username>')
+@login_required
+def unfollow(username):
+	user = User.query.filter_by(username=username).first()
+	if user is None:
+		flash('User {} not found'.format(username))
+		return redirect(url_for('index'))
+	if user==current_user:
+		flash('You cannnot unfollow yourself')
+		return redirect(url_for('user',username=username))
+	current_user.unfollow(user)
+	db.session.commit()
+	flash('You are not following {} '.format(username))
+	return redirect(url_for('user',username=username))
 
 
